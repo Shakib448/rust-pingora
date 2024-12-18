@@ -4,3 +4,29 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+tokio = { version = "1.42.0",features = ["full"], optional = true }
+axum = {version = "0.8.0-alpha.1", optional = true}
+
+pingora-core = {version = "0.4.0", optional = true}
+pingora-proxy = {version = "0.4.0", optional = true}
+pingora-load-balancing = {version = "0.4.0", optional = true}
+pingora-http = {version = "0.4.0", optional = true}
+async-trait = {version = "0.1.83", optional = true}
+log ={version = "0.4.22", optional = true}
+env_logger = {version = "0.11.5", optional = true}
+
+[features]
+server = ["tokio", "axum"]
+proxy = ["pingora-core", "pingora-load-balancing", "pingora-proxy", "pingora-http", "async-trait", "log", "env_logger"]
+
+
+[[bin]]
+name ="server"
+path = "src/server.rs"
+required-features = ["server"]
+
+
+[[bin]]
+name ="proxy"
+path = "src/proxy.rs"
+required-features = ["proxy"]
