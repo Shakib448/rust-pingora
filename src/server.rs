@@ -5,8 +5,9 @@ use axum::http::HeaderMap;
 
 
 
-async fn health(_headers: HeaderMap) -> String {
-    format!("Up, answered from 0.0.0.0:{}", env::var("PORT").unwrap_or_else(|_| "".to_string()))
+async fn health(headers: HeaderMap) -> String {
+    let proxy = headers.get("x-proxy-from").and_then(|value| value.to_str().ok()).unwrap_or("unknown");
+    format!("Up, answered from 0.0.0.0:{} with {}", env::var("PORT").unwrap_or_else(|_| "".to_string()), proxy)
 }
 
 #[tokio::main]

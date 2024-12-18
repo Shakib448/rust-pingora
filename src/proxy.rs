@@ -1,10 +1,14 @@
+use std::borrow::Cow;
 use std::sync::Arc;
 use std::time::Duration;
 use async_trait::async_trait;
+use axum::body::Bytes;
+use pingora_core::Error;
 use pingora_core::prelude::{background_service, HttpPeer, Server};
+use pingora_http::{RequestHeader, ResponseHeader};
 use pingora_load_balancing::LoadBalancer;
 use pingora_load_balancing::prelude::{RoundRobin, TcpHealthCheck};
-use pingora_proxy::{ProxyHttp, Session};
+use pingora_proxy::{ProxyHttp, PurgeStatus, Session};
 
 struct LB(Arc<LoadBalancer<RoundRobin>>);
 
@@ -18,8 +22,59 @@ impl ProxyHttp for LB {
        log::info!("Forwarding request to {upstream:?}" );
        Ok(Box::from(HttpPeer::new(upstream, false, String::from(""))))
     }
-    
-    
+
+    async
+    fn request_filter(&self, _session: &mut Session, _ctx: &mut Self::CTX) -> pingora_core::Result<bool>
+    where
+        Self::CTX: Send + Sync,
+    {
+        if !_session.req_header().uri.path().starts_with("/health") {
+            let _ = _session.respond_error(403).await;
+            return Ok(true)
+        }
+        Ok (false)
+    }
+
+    async
+    fn upstream_request_filter(&self, _session: &mut Session, _upstream_request: &mut RequestHeader, _ctx: &mut Self::CTX) -> pingora_core::Result<()>
+    where
+        Self::CTX: Send + Sync,
+    {
+        _upstream_request.insert_header("x-proxy-from", "0.0.0.0:6193").unwrap();
+        Ok(())
+    }
+
+    async
+    fn response_filter(&self, _session: &mut Session, _upstream_response: &mut ResponseHeader, _ctx: &mut Self::CTX) -> pingora_core::Result<()>
+    where
+        Self::CTX: Send + Sync,
+    {
+        _upstream_response.insert_header("Name", "Muktadir").unwrap();
+        Ok(())
+    }
+
+    async
+    fn request_body_filter(&self, _session: &mut Session, _body: &mut Option<Bytes>, _end_of_stream: bool, _ctx: &mut Self::CTX) -> pingora_core::Result<()>
+    where
+        Self::CTX: Send + Sync,
+    {
+        todo!()
+    }
+
+    async fn response_body_filter(&self, _session: &mut Session, _body: &mut Option<Bytes>, _end_of_stream: bool, _ctx: &mut Self::CTX) -> pingora_core::Result<Option<Duration>>
+    where
+        Self::CTX: Send + Sync,
+    {
+        todo!()
+    }
+
+    async
+    fn logging(&self, _session: &mut Session, _e: Option<&Error>, _ctx: &mut Self::CTX)
+    where
+        Self::CTX: Send + Sync,
+    {
+        todo!()
+    }
 }
 
 
